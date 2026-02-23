@@ -44,9 +44,11 @@ export function readJsonlFile(filePath) {
             records.push(JSON.parse(line));
         } catch (e) {
             // JSON parse can fail if we read the file while it's being written to.
-            // Return empty array to signal the caller should retry.
-            jsTest.log.info("Failed to parse JSONL line (file may be mid-write): " + e.message);
-            return [];
+            // We will skip this record and try to return the rest of the records that we parsed successfully.
+            jsTest.log.info(
+                `Failed to parse JSONL line (file may be mid-write). Skipping this record: ${filePath}: ${e.message}: Record: ${line}`,
+            );
+            continue;
         }
     }
     return records;
