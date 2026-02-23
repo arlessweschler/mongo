@@ -30,6 +30,9 @@ filters:
   - "generated_suites/fcv_upgrade_downgrade_primary_step_down_passthrough.yml":
     approvers:
       - 10gen/server-replication-reviewers
+  - "generated_suites/fcv_upgrade_downgrade_retryable_writes_replica_sets_jscore_passthrough.yml":
+    approvers:
+      - 10gen/server-transactions
   - "generated_suites/*primary_driven_index_builds.yml":
     approvers:
       - 10gen/server-index-builds

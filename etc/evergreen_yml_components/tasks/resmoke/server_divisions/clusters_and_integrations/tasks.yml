@@ -2403,6 +2403,24 @@ tasks:
             --disableFeatureFlags=featureFlagCreateViewlessTimeseriesCollections
 
   - <<: *gen_task_template
+    name: fcv_upgrade_downgrade_retryable_writes_replica_sets_jscore_passthrough_gen
+    tags: [
+        "assigned_to_jira_team_server_catalog_and_routing",
+        "default",
+        "replica_sets",
+        "jscore",
+        # we already have `fcv_upgrade_downgrade_replica_sets_jscore_passthrough` in required variants
+        # thus we only include this in `suggested` variants
+        "suggested_excluding_required__for_devprod_mitigation_only",
+      ]
+    commands:
+      - func: "generate resmoke tasks"
+        vars:
+          # TODO(SERVER-109882): Enable viewless timeseries in upgrade/downgrade suites
+          resmoke_args: >-
+            --disableFeatureFlags=featureFlagCreateViewlessTimeseriesCollections
+
+  - <<: *gen_task_template
     name: fcv_upgrade_downgrade_primary_step_down_passthrough_gen
     tags:
       ["assigned_to_jira_team_server_catalog_and_routing", "default", "jscore"]
