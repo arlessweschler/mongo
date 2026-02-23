@@ -739,6 +739,118 @@ TEST_F(ReplicatedFastCountTest, ApplyOpsDeletesAreCorrectlyAccountedFor) {
     replicated_fast_count_test_helpers::checkUncommittedFastCountChanges(_opCtx, _uuid1, 0, 0);
 }
 
+TEST_F(ReplicatedFastCountTest, CappedDeletesUpdateFastCountWhenHittingCapCount) {
+    RAIIServerParameterControllerForTest featureFlag("featureFlagReplicatedFastCount", true);
+
+    // Make this an unreplicated block so that the capped insert and delete combo doesn't violate
+    // the multi‑timestamp constraint.
+    repl::UnreplicatedWritesBlock uwb(_opCtx);
+
+    const int cappedCollMaxCount = 5;
+
+    NamespaceString nssCapped = NamespaceString::createNamespaceString_forTest(
+        "replicated_fast_count_test", "cappedWithMaxCount");
+
+    auto uuidCapped = UUID::gen();
+
+    ASSERT_OK(
+        createCollection(_opCtx,
+                         nssCapped.dbName(),
+                         BSON("create" << nssCapped.coll() << "capped" << true << "size"
+                                       << cappedCollMaxCount * sampleDocForInsert.objsize() *
+                                  5  // Make the size larger so that count is the limiting bound
+                                       << "max" << cappedCollMaxCount)));
+
+    // Insert up until the max capped doc count.
+    AutoGetCollection cappedColl(_opCtx, nssCapped, LockMode::MODE_IX);
+
+    uuidCapped = cappedColl->uuid();
+
+    for (int i = 0; i < cappedCollMaxCount; ++i) {
+        WriteUnitOfWork wuow(_opCtx);
+        ASSERT_OK(Helpers::insert(_opCtx, *cappedColl, docGeneratorForInsert(i)));
+        replicated_fast_count_test_helpers::checkUncommittedFastCountChanges(
+            _opCtx, uuidCapped, 1, sampleDocForInsert.objsize());
+        wuow.commit();
+        const auto expectedCommittedCount = i + 1;
+        replicated_fast_count_test_helpers::checkCommittedFastCountChanges(
+            uuidCapped,
+            _fastCountManager,
+            expectedCommittedCount,
+            expectedCommittedCount * sampleDocForInsert.objsize());
+    }
+
+    // Insert more docs. Our committed count and size should still be at the cap.
+    for (int i = cappedCollMaxCount + 1; i < 3 * cappedCollMaxCount; ++i) {
+        WriteUnitOfWork wuow(_opCtx);
+        ASSERT_OK(Helpers::insert(_opCtx, *cappedColl, docGeneratorForInsert(i)));
+        // Insert + delete of same size cancel each other out.
+        replicated_fast_count_test_helpers::checkUncommittedFastCountChanges(
+            _opCtx, uuidCapped, 0, 0);
+        wuow.commit();
+        replicated_fast_count_test_helpers::checkCommittedFastCountChanges(
+            uuidCapped,
+            _fastCountManager,
+            cappedCollMaxCount,
+            cappedCollMaxCount * sampleDocForInsert.objsize());
+    }
+}
+
+TEST_F(ReplicatedFastCountTest, CappedDeletesUpdateFastCountWhenHittingCapSize) {
+    RAIIServerParameterControllerForTest featureFlag("featureFlagReplicatedFastCount", true);
+
+    // Make this an unreplicated block so that the capped insert and delete combo doesn't violate
+    // the multi‑timestamp constraint.
+    repl::UnreplicatedWritesBlock uwb(_opCtx);
+
+    const int cappedCollMaxCount = 5;
+
+    NamespaceString nssCapped = NamespaceString::createNamespaceString_forTest(
+        "replicated_fast_count_test", "cappedWithMaxSize");
+
+    auto uuidCapped = UUID::gen();
+
+    ASSERT_OK(
+        createCollection(_opCtx,
+                         nssCapped.dbName(),
+                         BSON("create" << nssCapped.coll() << "capped" << true << "size"
+                                       << cappedCollMaxCount * sampleDocForInsert.objsize())));
+
+    // Insert up until the max capped doc size.
+    AutoGetCollection cappedColl(_opCtx, nssCapped, LockMode::MODE_IX);
+
+    uuidCapped = cappedColl->uuid();
+
+    for (int i = 0; i < cappedCollMaxCount; ++i) {
+        WriteUnitOfWork wuow(_opCtx);
+        ASSERT_OK(Helpers::insert(_opCtx, *cappedColl, docGeneratorForInsert(i)));
+        replicated_fast_count_test_helpers::checkUncommittedFastCountChanges(
+            _opCtx, uuidCapped, 1, sampleDocForInsert.objsize());
+        wuow.commit();
+        const auto expectedCommittedCount = i + 1;
+        replicated_fast_count_test_helpers::checkCommittedFastCountChanges(
+            uuidCapped,
+            _fastCountManager,
+            expectedCommittedCount,
+            expectedCommittedCount * sampleDocForInsert.objsize());
+    }
+
+    // Insert more docs. Our committed count and size should still be at the cap.
+    for (int i = cappedCollMaxCount + 1; i < 3 * cappedCollMaxCount; ++i) {
+        WriteUnitOfWork wuow(_opCtx);
+        ASSERT_OK(Helpers::insert(_opCtx, *cappedColl, docGeneratorForInsert(i)));
+        // Insert + delete of same size cancel each other out.
+        replicated_fast_count_test_helpers::checkUncommittedFastCountChanges(
+            _opCtx, uuidCapped, 0, 0);
+        wuow.commit();
+        replicated_fast_count_test_helpers::checkCommittedFastCountChanges(
+            uuidCapped,
+            _fastCountManager,
+            cappedCollMaxCount,
+            cappedCollMaxCount * sampleDocForInsert.objsize());
+    }
+}
+
 using ReplicatedFastCountDeathTest = ReplicatedFastCountTest;
 
 // TODO SERVER-120203: Re-enable this test.
