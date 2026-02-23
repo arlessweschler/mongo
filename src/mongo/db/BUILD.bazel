@@ -542,7 +542,6 @@ mongo_cc_library(
     srcs = [
         "//src/mongo/db/global_catalog/ddl:shard_key_index_util.cpp",
         "//src/mongo/db/global_catalog/ddl:sharding_migration_critical_section.cpp",
-        "//src/mongo/db/router_role:sharding_write_router.cpp",
         "//src/mongo/db/s:transaction_coordinator_worker_curop_repository.cpp",
         "//src/mongo/db/shard_role:direct_shard_client_tracker.cpp",
         "//src/mongo/db/shard_role:transaction_resources.cpp",
