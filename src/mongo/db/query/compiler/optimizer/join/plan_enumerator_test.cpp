@@ -138,9 +138,9 @@ public:
 
     PlanEnumeratorContext makeEnumeratorContext(const JoinReorderingContext& ctx,
                                                 EnumerationStrategy strategy) {
-        auto ce = makeFakeEstimator(ctx);
-        auto coster = makeCoster(ctx, *ce);
-        return {ctx, std::move(ce), std::move(coster), std::move(strategy)};
+        _ce = makeFakeEstimator(ctx);
+        _coster = makeCoster(ctx, *_ce);
+        return {ctx, _ce.get(), _coster.get(), std::move(strategy)};
     }
 
     // Asserts that for all HJ enumerated at every level of enumeration, the CE for the LHS of the
@@ -217,6 +217,8 @@ public:
     }
 
     std::vector<BSONObj> bsonStorage;
+    std::unique_ptr<JoinCardinalityEstimator> _ce;
+    std::unique_ptr<JoinCostEstimator> _coster;
 };
 
 TEST_F(JoinPlanEnumeratorTest, InitializeSubsetsTwo) {

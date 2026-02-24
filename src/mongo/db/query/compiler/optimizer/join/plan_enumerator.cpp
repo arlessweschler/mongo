@@ -224,7 +224,8 @@ void PlanEnumeratorContext::enumerateINLJPlan(EdgeId edge,
         return;
     }
 
-    auto inljCost = _coster->costINLJFragment(_registry.get(leftPlan), rightNodeId, ie);
+    auto inljCost =
+        _coster ? _coster->costINLJFragment(_registry.get(leftPlan), rightNodeId, ie) : zeroCost;
     bool isBestPlan = isBestPlanSoFar(subset, inljCost);
     if (_mode.mode == PlanEnumerationMode::CHEAPEST && !isBestPlan) {
         // Only build this plan if it is better than what we already have.
@@ -244,10 +245,10 @@ void PlanEnumeratorContext::enumerateJoinPlan(JoinMethod method,
         const auto& leftPlan = _registry.get(leftPlanId);
         const auto& rightPlan = _registry.get(rightPlanId);
         if (method == JoinMethod::NLJ) {
-            return _coster->costNLJFragment(leftPlan, rightPlan);
+            return _coster ? _coster->costNLJFragment(leftPlan, rightPlan) : zeroCost;
         }
         tassert(1748000, "Expected HJ", method == JoinMethod::HJ);
-        return _coster->costHashJoinFragment(leftPlan, rightPlan);
+        return _coster ? _coster->costHashJoinFragment(leftPlan, rightPlan) : zeroCost;
     }();
 
     bool isBestPlan = isBestPlanSoFar(subset, joinCost);
@@ -378,7 +379,10 @@ void PlanEnumeratorContext::enumerateJoinSubsets() {
         const auto* qsn = _ctx.cbrCqQsns.at(cq).get();
         _joinSubsets[kBaseLevel].push_back(JoinSubset(NodeSet{}.set(i)));
         _joinSubsets[kBaseLevel].back().plans = {_registry.registerBaseNode(
-            (NodeId)i, qsn, cq->nss(), _coster->costBaseCollectionAccess((NodeId)i))};
+            (NodeId)i,
+            qsn,
+            cq->nss(),
+            _coster ? _coster->costBaseCollectionAccess((NodeId)i) : zeroCost)};
     }
 
     // Initialize the rest of the joinSubsets.

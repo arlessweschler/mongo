@@ -181,15 +181,15 @@ struct EnumerationStrategy {
 class PlanEnumeratorContext {
 public:
     PlanEnumeratorContext(const JoinReorderingContext& ctx,
-                          std::unique_ptr<JoinCardinalityEstimator> estimator,
-                          std::unique_ptr<JoinCostEstimator> coster,
+                          JoinCardinalityEstimator* estimator,
+                          JoinCostEstimator* coster,
                           EnumerationStrategy strategy)
         : _ctx{ctx},
           _estimator(std::move(estimator)),
           _coster(std::move(coster)),
           _strategy(std::move(strategy)) {}
 
-    // Delete copy and move operations to prevent issues with copying '_joinGraph'.
+    // Delete copy and move operations to ensure concrete ownership.
     PlanEnumeratorContext(const PlanEnumeratorContext&) = delete;
     PlanEnumeratorContext& operator=(const PlanEnumeratorContext&) = delete;
     PlanEnumeratorContext(PlanEnumeratorContext&&) = delete;
@@ -220,11 +220,11 @@ public:
     }
 
     JoinCardinalityEstimator* getJoinCardinalityEstimator() const {
-        return _estimator.get();
+        return _estimator;
     }
 
     JoinCostEstimator* getJoinCostEstimator() const {
-        return _coster.get();
+        return _coster;
     }
 
     /**
@@ -308,8 +308,9 @@ private:
     }
 
     const JoinReorderingContext& _ctx;
-    std::unique_ptr<JoinCardinalityEstimator> _estimator;
-    std::unique_ptr<JoinCostEstimator> _coster;
+    // Unowned pointers! If null, all costs are set to 0.
+    JoinCardinalityEstimator* _estimator;
+    JoinCostEstimator* _coster;
     EnumerationStrategy _strategy;
 
     // Variable tracking current enumeration mode during enumeration.
