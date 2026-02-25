@@ -2429,10 +2429,6 @@ tasks:
       ]
     commands:
       - func: "generate resmoke tasks"
-        vars:
-          # TODO(SERVER-109882): Enable viewless timeseries in upgrade/downgrade suites
-          resmoke_args: >-
-            --disableFeatureFlags=featureFlagCreateViewlessTimeseriesCollections
 
   - <<: *gen_task_template
     name: fcv_upgrade_downgrade_primary_step_down_passthrough_gen
