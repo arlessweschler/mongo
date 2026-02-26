@@ -41,6 +41,7 @@ export const commandsRemovedFromMongodSinceLastLTS = [
 // listCommands output of a last LTS version mongod. We will allow these commands to have a
 // test defined without always existing on the mongod being used.
 export const commandsAddedToMongodSinceLastLTS = [
+    "_recoverShardRegistry",
     "releaseMemory",
     "_shardsvrReshardingDonorFetchFinalCollectionStats",
     "_shardsvrReshardingDonorStartChangeStreamsMonitor",
